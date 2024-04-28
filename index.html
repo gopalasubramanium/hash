@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Generate various hashes in real-time. Educational tool for understanding hashing and nonce calculations.">
+    <meta name="keywords" content="hash generator, SHA, MD5, real-time hash, nonce, educational tool, hash calculator">
+    <meta name="author" content="Gopala Subramanium">
+    <title>Advanced Hash Generator Tool</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s, color 0.3s;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        }
+        textarea, select, input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+        .theme-switch {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            cursor: pointer;
+        }
+        .material-icons {
+            font-size: 24px;
+        }
+        .disclaimer, .author {
+            font-size: 12px;
+            text-align: center;
+            margin-top: 30px;
+        }
+        .nonce-section {
+            display: none;
+            margin-top: 10px;
+        }
+        .processing {
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .processing.processing-state {
+            color: red;
+            animation: blinker 1s linear infinite;
+        }
+        .processing.processed-state {
+            color: green;
+            animation: none;
+        }
+        @keyframes blinker {
+            50% { opacity: 0; }
+        }
+        .dark-mode {
+            background-color: #263238;
+            color: #eceff1;
+        }
+        .dark-mode .container {
+            background-color: #37474f;
+        }
+        .dark-mode textarea,
+        .dark-mode select,
+        .dark-mode input[type="number"],
+        .dark-mode input[type="text"] {
+            background-color: #455a64;
+            color: #cfd8dc;
+        }
+        .time-taken {
+            font-size: 12px;
+            color: #555;
+            text-align: center;
+            margin-top: 10px;
+        }
+        .zero-option {
+            margin-top: 10px;
+        }
+        .zero-option label, .zero-option input {
+            display: inline-block;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="theme-switch" onclick="toggleTheme()">
+        <span class="material-icons">brightness_6</span>
+    </div>
+
+    <h1>Advanced Hash Generator Tool</h1>
+    <textarea id="textInput" placeholder="Enter text here" oninput="generateHash()"></textarea>
+    <select id="hashType" onchange="generateHash()">
+        <option value="SHA-1">SHA-1</option>
+        <option value="SHA-256" selected>SHA-256</option>
+        <option value="SHA-384">SHA-384</option>
+        <option value="SHA-512">SHA-512</option>
+        <option value="MD5">MD5</option>
+    </select>
+    <textarea id="hashOutput" readonly rows="4" placeholder="Generated hash will appear here"></textarea>
+
+    <label for="enableNonce">Enable Nonce for zeros</label>
+    <input type="checkbox" id="enableNonce" onchange="toggleNonce()">
+    
+    <div class="nonce-section" id="nonceSection">
+        <div class="zero-option">
+            <input type="radio" id="leadingZeros" name="zeroType" value="leading" checked onchange="generateNonce()">
+            <label for="leadingZeros">Leading Zeros</label>
+            <input type="radio" id="trailingZeros" name="zeroType" value="trailing" onchange="generateNonce()">
+            <label for="trailingZeros">Trailing Zeros</label>
+        </div>
+        <input type="number" id="zeroCount" placeholder="Number of zeros" value="0" oninput="generateNonce()">
+        <div class="processing" id="processingIndicator"></div>
+        <label for="nonce" class="label">Nonce:</label>
+        <input type="text" id="nonce" placeholder="Nonce will appear here" readonly>
+        <label for="textNonce" class="label">Text and Nonce:</label>
+        <textarea id="textNonce" readonly rows="2" placeholder="Text and nonce will appear here"></textarea>
+        <label for="textAndNonceHash" class="label">Hash of Text and Nonce:</label>
+        <textarea id="textAndNonceHash" readonly rows="4" placeholder="Hash of text and nonce will appear here"></textarea>
+        <div class="time-taken" id="timeTaken"></div>
+    </div>
+</div>
+
+<div class="author">
+    Developed by <a href="https://m.sgopala.com" target="_blank">Gopala Subramanium</a>
+</div>
+<div class="disclaimer">
+    Disclaimer: This page is for educational purposes only and is not intended for commercial use.
+</div>
+
+<script>
+    function generateHash() {
+        const text = document.getElementById('textInput').value;
+        const hashType = document.getElementById('hashType').value;
+        const encoder = new TextEncoder();
+        const data = encoder.encode(text);
+        crypto.subtle.digest(hashType, data).then(hash => {
+            const hashArray = Array.from(new Uint8Array(hash));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            document.getElementById('hashOutput').textContent = hashHex;
+        });
+    }
+
+    function toggleTheme() {
+        document.body.classList.toggle('dark-mode');
+    }
+
+    function toggleNonce() {
+        const nonceSection = document.getElementById('nonceSection');
+        nonceSection.style.display = document.getElementById('enableNonce').checked ? 'block' : 'none';
+        if (!document.getElementById('enableNonce').checked) {
+            setProcessingState('', false); // Clear processing state when nonce section is hidden
+        }
+    }
+
+    async function generateNonce() {
+        const zeroCountElement = document.getElementById('zeroCount');
+        const zeroType = document.querySelector('input[name="zeroType"]:checked').value;
+        const zeroCount = parseInt(zeroCountElement.value || '0');
+
+        if (zeroCount > 0) {
+            const startTime = performance.now();
+            zeroCountElement.readOnly = true;
+            setProcessingState('Processing...', true);
+
+            const text = document.getElementById('textInput').value;
+            const hashType = document.getElementById('hashType').value;
+            let nonce = 0;
+            let hashHex = '';
+            const zeroPattern = zeroType === 'leading' ? '^0{' + zeroCount + '}' : '0{' + zeroCount + '}$';
+
+            do {
+                nonce++;
+                const combinedText = text + nonce;
+                const encoder = new TextEncoder();
+                const data = encoder.encode(combinedText);
+                const hash = await crypto.subtle.digest(hashType, data);
+                const hashArray = Array.from(new Uint8Array(hash));
+                hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            } while (!hashHex.match(new RegExp(zeroPattern)) && document.getElementById('enableNonce').checked);
+
+            const endTime = performance.now();
+            const timeTaken = (endTime - startTime) / 1000; // Convert to seconds
+
+            document.getElementById('nonce').value = nonce;
+            document.getElementById('textNonce').textContent = `${text}${nonce}`;
+            document.getElementById('textAndNonceHash').textContent = hashHex;
+            setProcessingState('Processed', false);
+            document.getElementById('timeTaken').textContent = `Time taken: ${timeTaken.toFixed(2)} seconds`;
+        } else {
+            setProcessingState('', false);
+        }
+
+        zeroCountElement.readOnly = false;
+    }
+
+    function setProcessingState(text, isProcessing) {
+        const processingIndicator = document.getElementById('processingIndicator');
+        processingIndicator.textContent = text;
+        if (isProcessing) {
+            processingIndicator.classList.add('processing-state');
+        } else {
+            processingIndicator.classList.remove('processing-state', 'processed-state');
+            if (text !== '') {
+                processingIndicator.classList.add('processed-state');
+            }
+        }
+    }
+</script>
+</body>
+</html>
